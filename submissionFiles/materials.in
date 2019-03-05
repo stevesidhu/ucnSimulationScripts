@@ -1,0 +1,96 @@
+[MATERIALS]
+############### Define material properties for UCN #############
+# imaginary Fermi potential, diffuse reflectivity, spin flip probability, micro-roughness parameters, enable micro-roughness reflection
+# Diffuse reflection is either modeled with the Lambert model or the Micro Roughness model
+#  see Neutron news 3.3 (1992): 26-37, Z. Physik 254, 169--188 (1972) and Eur. Phys. J. A 44, 23–29 (2010)
+#name		FermiReal [neV]		FermiImag [neV]		LambertReflectionProbability [0..1]		SpinflipProbability [0..1]	RMSroughness [m]	CorrelationLength [m]
+default		0			0			0				0			0			0
+PolishedSteel	183			0.0852			0				1e-4	2.6e-9	20e-9
+PE		-8.6553			0.492			0.5				0	0	0
+Ti		-51.1			0.0432			0.2				1e-5	0	0
+Cu		170.7470		0.0726			0.2				1e-5	0	0
+Al		54.1			0.00281			0.2				1e-5	0	0
+#Al		54.1			0.00281			0				1e-5	0	0
+AlLT		54.1			1.40e-3			0				1e-5	0	0
+DLC		269			0.0625			0  				2e-6	3E-9	25E-9
+UCNdet		0			99999			0				0	0	0
+UCNcount	0			0			0				0	0	0	# used to count UCN in cell	
+DLCLT		269			5.1116e-3		0  				2e-6    3E-9	25E-9	# cold DLC, imag part should be lower
+NiPLT       212.9579		0.07         		0.03				0	0	0	#iW of 0.07 gives a tau ~ 80-84 s.
+#NiPLT       212.9579		0.0         		0.16				0	0	0	#NiPlt is at 1K; Moving iW to 0.07 to get around 80s tau
+NiP         212.9579        .113              0.03                0   0   0     #added 2018-01-15; got iW from RP 
+NiLT		245.1117		.04068			0.15				0	0	0	#Ni is at 1K;  iW = .04068
+Ni58        347.16          .206            0.03                    0   0   0  #Added 2018-10-12 by SSidhu
+NiMo		226.7135		0.136			0				0	2.4E-9	12E-9
+NiMoLT		226.7135		3.7e-2			0				0	2.4E-9	12E-9
+CuBe		178.8031		0.0726			0.16				0	0	0
+LHe0		18.7854			0			0.16				0	0	0	#0 fermi
+LHe0.95		18.7854			1.89e-9			0.16				0	0	0	#
+LHe0.96		18.7854			2.00e-9			0.16				0	0	0	#
+LHe0.97		18.7854			2.13e-9			0.16				0	0	0	#
+LHe0.98		18.7854			2.53e-9			0.16				0	0	0	#
+LHe0.99		18.7854			2.83e-9			0.16				0	0	0	#
+LHe1.0		18.7854			2.63e-9			0.16				0	0	0	#
+LHe1.01		18.7854			2.94e-9			0.16				0	0	0	#
+LHe1.02		18.7854			3.10e-9			0.16				0	0	0	#
+LHe1.03		18.7854			3.23e-9			0.16				0	0	0	#
+LHe1.04		18.7854			3.49e-9			0.16				0	0	0	#
+LHe1.05		18.7854			3.72e-9			0.16				0	0	0	#
+LHe1.06		18.7854			4.00e-9			0.16				0	0	0	#
+LHe1.07		18.7854			4.23e-9			0.16				0	0	0	#
+LHe1.08		18.7854			4.51e-9			0.16				0	0	0	#
+LHe1.09		18.7854			4.81e-9			0.16				0	0	0	#
+LHe1.10		18.7854			5.13e-9			0.16				0	0	0	#
+LHe1.11		18.7854			5.47e-9			0.16				0	0	0	#
+LHe1.12		18.7854			5.82e-9			0.16				0	0	0	#
+LHe1.13		18.7854			6.19e-9			0.16				0	0	0	#
+LHe1.14		18.7854			6.59e-9			0.16				0	0	0	# 
+LHe1.15		18.7854			7e-9			0.16				0	0	0	#
+LHe1.16		18.7854			7.44e-9			0.16				0	0	0	#
+LHe1.17		18.7854			7.9e-9			0.16				0	0	0	#
+LHe1.18		18.7854			8.39e-9			0.16				0	0	0	#
+LHe1.19		18.7854			9.32e-9			0.16				0	0	0	#
+LHe1.20		18.7854			9.43e-9			0.16				0	0	0	#
+LHe1.21		18.7854			1.04e-8			0.16				0	0	0	#
+LHe1.22		18.7854			1.09e-8			0.16				0	0	0	#
+LHe1.23		18.7854			1.13e-8			0.16				0	0	0	#
+LHe1.24		18.7854			1.19e-8			0.16				0	0	0	# 
+LHe1.25		18.7854			1.26e-8			0.16				0	0	0	# 
+LHe1.26		18.7854			1.35e-8			0.16				0	0	0	#
+LHe1.27		18.7854			1.43e-8			0.16				0	0	0	#
+LHe1.28		18.7854			1.48e-8			0.16				0	0	0	#
+LHe1.29		18.7854			1.55e-8			0.16				0	0	0	#
+LHe1.3		18.7854			1.65e-8			0.16				0	0	0	#
+He0         0.0213          0            0.16                0   0   0  # 0 fermi
+########### all svp based on 0.95k
+#He22.5         0.0213        2.67e-10            0.16                0   0   0  # All He vapor fermis calcualted with svp at 1.14K (HEX temp)
+#He65           0.0213        1.56e-10            0.16                0   0   0  #
+#He108          0.0213        1.21e-10     0.16                0   0   0  #
+#He151          0.0213        1.03e-10     0.16                0   0   0  #
+#He193          0.0213        9.07e-11     0.16                0   0   0  #
+#He236          0.0213        8.2e-11     0.16                0   0   0  #
+#He279          0.0213        7.55e-11     0.16                0   0   0  #
+#He300          0.0213        7.28e-11      0.16                0   0   0  #
+########### all svp based on 1.14k
+He22.5         0.0213        1.48e-9            0.16                0   0   0  # All He vapor fermis calcualted with svp at 1.14K (HEX temp)
+He65           0.0213        8.7e-10            0.16                0   0   0  #
+He108          0.0213        6.76e-10     0.16                0   0   0  #
+He151          0.0213        5.72e-10     0.16                0   0   0  #
+He193          0.0213        5.05e-10     0.16                0   0   0  #
+He236          0.0213        4.57e-10     0.16                0   0   0  #
+He279          0.0213        4.21e-10     0.16                0   0   0  #
+He300          0.0213        4.06e-10      0.16                0   0   0  #
+########## all svp based on 1.24K
+#He1.24         0.0213        1.27e-8            0.16                0   0   0  # All He vapor fermis calcualted with svp at 1.24 K
+#He55           0.0213        1.91e-9            0.16                0   0   0  #
+#He109          0.0213        1.35e-9     0.16                0   0   0  #
+#He145          0.0213        1.17e-9     0.16                0   0   0  #
+#He181          0.0213        1.05e-9     0.16                0   0   0  #
+#He217          0.0213        9.6e-10     0.16                0   0   0  #
+#He253          0.0213        8.89e-10     0.16                0   0   0  #
+#He300          0.0213        8.16e-10      0.16                0   0   0  #
+#################
+BeO		   256.6665		6.23e-2			0.16				0	0	0
+SS		   183.0405		8.52e-2			0.16				0	0	0
+dPE    		 209              	0.06           		0.16            		1e-5	0	0
+dPS     	171             	0.047          		0.16             		1e-5	0	0
