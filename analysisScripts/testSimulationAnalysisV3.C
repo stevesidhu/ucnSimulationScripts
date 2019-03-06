@@ -53,7 +53,7 @@
 	double cellCenter = 0; //The z coordinate of the center of the two edm cells !DEFAULT VALUE!
 	Double_t cellLowerXBound = 5.3; //Minimum x coordinate corresponding to the EDM cell, relative to the origin, in m. This is the distance from the origin to the start of the cell
 	double valveOpenTime = 100;
-	double activeTime = 200; //Source active time, usually same as simulation time
+	double activeTime = 200; //Source active time (simulation)
     
     
 
@@ -591,6 +591,10 @@ void transport(std::string fileName, int modeParameter,SimResult &results, doubl
 //UCN remaining: look at N_0 that fill the cell and estimate how many survive after Ramsey cycle, emptying, collection as a function of energy (5 nev binning)
 void UCNremainingAfterCycle(SimResult &result)
 {
+    // Top and bottom spectrum come from transport() function.  This is the energy spectrum histogram of EDM cell filling broken into 5nev bins.  These contain simulation numbers of filling.
+    // TopTauFile and bottomTauFile contains a histogram of storage lifetime of ucn in edm cell broken up by ucn energy (broken into 5nev bins).
+    // Top and bottom emptying file contains histogram of collection efficiency vs engery spectrum of ucn (broken into 5nev bins).
+    
     TH1F* topspectrum = result.topCellESpec;
     TH1F* bottomspectrum = result.bottomCellESpec;
 
@@ -607,25 +611,32 @@ void UCNremainingAfterCycle(SimResult &result)
 //    TFile bottomemptyingfile("kinkHtBottomEmptying_DetEff.root");
 //    TFile topemptyingfile(Form("asymFeedEmpt2VTop%icm_DetEff.root",(int)result.parameter));
 //    TFile bottomemptyingfile(Form("asymFeedEmpt2VBottom%icm_DetEff.root",(int)result.parameter));
+   
     TH2 *topemptyinghist = (TH2*)topemptyingfile.Get("emptyEff");
     TH2 *bottomemptyinghist = (TH2*)bottomemptyingfile.Get("emptyEff");
+
+    //Collection efficiency limiting the x-axis by optimal emptying time. Not including ucn detected after optimal emptying time.
     TH1 *topDetEff = topemptyinghist->ProjectionY("_detEff", 0,topemptyinghist->GetXaxis()->FindBin(result.emptyingTime));
     TH1 *bottomDetEff = bottomemptyinghist->ProjectionY("_detEff",0,bottomemptyinghist->GetXaxis()->FindBin(result.emptyingTime));
 
 
-    //Initial ucn in both cells
-    double n0Cell = result.topCellESpec->GetEntries() + result.bottomCellESpec->GetEntries();
+    //Initial ucn in both cells  NOT USED.  INTEGRATE INSTEAD
+   // double n0Cell = result.topCellESpec->GetEntries() + result.bottomCellESpec->GetEntries();
 
-    double nFCellTop = 0.;
+    double nFCellTop = 0.; // Top cell Ramsey survivors in simulation
     double nFCellBottom = 0.;
-    double survivors = 0.;
+    double survivors = 0.; // Total ucn that get collected by detectors in simulation
     double dsurvivors = 0.;
-    double wTopDet = 0.;
+    double wTopDet = 0.;  //Total number of UCN collected from top cell
     double wBottomDet =0.;
 
-    // looping over each energy bin
-    for (int i = 1; i < toptauhist->GetNbinsX() - 1; ++i){
-        double Nitop = topspectrum->GetBinContent(i);  //Initial number of UCN at end of filling, in that energy bin
+    //We now have 6 1-D histograms(top and bottom filling, collection efficiency, ramsey survivors), broken up into 5nev energy bins, that we can now multiply bin by bin. 
+    //Filling histogram gives us simulated number of UCN in each cell.  Collection efficiency and ramsey survivor histograms give us probabilities.
+
+    // looping over each energy bin (5 nev bins from 0 to 250 nev, i think)
+    for (int i = 1; i < toptauhist->GetNbinsX() - 1; ++i)
+    {
+        double Nitop = topspectrum->GetBinContent(i);  //Initial number of UCN, at end of filling, in that energy bin
         double dNitop = topspectrum->GetBinError(i);
         double tauitop = toptauhist->GetBinContent(i); //tau storage for that energy bin
         double dtauitop = toptauhist->GetBinError(i);
@@ -638,21 +649,24 @@ void UCNremainingAfterCycle(SimResult &result)
         double detEffBottom = bottomDetEff->GetBinContent(i);
         double uDetEffBottom = bottomDetEff->GetBinError(i);
 
+// Just used to give weighted mean averages to be displayed and quoted.  Not used in UCNremaining calculation.
+////////////////////////////////////////////////////////////////////////////////////////
         //Number of UCN of that energy bin collected
         wTopDet += detEffTop * Nitop*exp(-result.optimalTedm/tauitop); 
-        wBottomDet+= detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom);
-        
+        wBottomDet+= detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom);   
         //Number that survive Ramsey cycle (right before when the emptying valve opens)
         nFCellTop += Nitop*exp(-result.optimalTedm/tauitop);
         nFCellBottom += Nibottom*exp(-result.optimalTedm/tauibottom);
-        
+///////////////////////////////////////////////////////////////////////////////////////
+
+
         //Most important
-        //Total survivors for each energy bin 
+        //Total number of collected ucn from each energy bin in simulated number of ucn.
         survivors += detEffTop * Nitop*exp(-result.optimalTedm/tauitop) + detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom);
         if (dtauitop != 0)
-            dsurvivors += pow(uDetEffTop*Nitop*exp(-result.optimalTedm/tauitop), 2) + pow(dNitop*detEffTop*exp(-result.optimalTedm/tauitop), 2) + pow(Nitop*detEffTop*exp(-result.optimalTedm/tauitop)/tauitop/tauitop*dtauitop, 2);
+            dsurvivors += pow(uDetEffTop*Nitop*exp(-result.optimalTedm/tauitop), 2) + pow(dNitop*detEffTop*exp(-result.optimalTedm/tauitop), 2) + pow(Nitop*detEffTop*exp(-result.optimalTedm/tauitop)/tauitop/tauitop*dtauitop, 2) + pow(result.uOptimalTedm *detEffTop * Nitop*exp(-result.optimalTedm/tauitop),2);
         if (dtauibottom != 0)
-            dsurvivors += pow(uDetEffBottom* Nibottom *exp(-result.optimalTedm/tauibottom), 2) + pow(dNibottom *detEffBottom *exp(-result.optimalTedm/tauibottom), 2) + pow(Nibottom*detEffBottom*exp(-result.optimalTedm/tauibottom)/tauibottom/tauibottom*dtauibottom, 2);   
+            dsurvivors += pow(uDetEffBottom* Nibottom *exp(-result.optimalTedm/tauibottom), 2) + pow(dNibottom *detEffBottom *exp(-result.optimalTedm/tauibottom), 2) + pow(Nibottom*detEffBottom*exp(-result.optimalTedm/tauibottom)/tauibottom/tauibottom*dtauibottom, 2) + pow(result.uOptimalTedm * detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom),2);   
     }
    
     //Used to calculed weight def eff
@@ -661,11 +675,13 @@ void UCNremainingAfterCycle(SimResult &result)
     double avgTauCell = result.optimalTedm / log(N0/NF);
     double uavgTauCell = result.optimalTedm * (sqrt(1./N0 + 1./NF) * NF/N0) ; 
     
+    //Used for display purposes only
     double topDetMean = wTopDet / nFCellTop;
     double bottomDetMean = wBottomDet / nFCellBottom;
     double utopDetMean =  sqrt(1.0/nFCellTop);
     double ubottomDetMean = sqrt(1.0/nFCellBottom);
 
+    //Used for display purposes only
     result.wTopDetEff = (topDetMean /pow(utopDetMean,2))/(1./pow(utopDetMean,2));
     result.uWTopDetEff = sqrt(1/( 1./pow(ubottomDetMean,2)));
     result.wBottomDetEff = ( bottomDetMean /pow(ubottomDetMean,2))/(1./pow(ubottomDetMean,2));
@@ -679,7 +695,7 @@ void UCNremainingAfterCycle(SimResult &result)
     topemptyingfile.Close();
     bottomemptyingfile.Close();
 
-    result.survivalprob  = survivors/N0;
+    result.survivalprob  = survivors/N0;  // survival probability
     result.dSurvivalprob = sqrt(dsurvivors)/N0;
     result.avgTauCells = avgTauCell;
     result.uavgTauCells = uavgTauCell;
@@ -727,9 +743,11 @@ double days(int mode, SimResult &result)
     double N_det;  //Number of UCN that get detected
     double alpha_after;  //Visibility after Ramsey sequence
 
+    //Number of actual UCN in cell at start of Ramsey cycle.  Total production * time to produce * time to fill * filling efficiency
     N_0 = spinTrans * beamHeating * UCN_production * sourcePumpingTime * result.efficiency;
 
-    N_det = N_0 * result.survivalprob * exp(-result.optimalTedm/tau_Xe) * detEff;
+    //Number of actual UCN collected
+    N_det = N_0 * result.survivalprob * exp(-result.optimalTedm/tau_Xe) * detEff;  //detEff = efficiency of the detector, global constant
 
     alpha_after = alpha * exp(-((result.optimalTedm- t_wait - 2*t_pulse) / T2) - (t_wait + 2* t_pulse)/T1) * detSpinTrans * Panalyzer;
 
@@ -756,6 +774,9 @@ void analyzeSim(SimResult &result, std::string fileName, int mode, double cellCe
          //function call for transport
 	     transport(fileName, mode, result,cellCenter);
 
+        // Optimal Tedm error based on resolution of optimization integrator
+        result.uOptimalTedm = (500. - 20.)/1000.;
+
         result.emptyingTime = 55.;  //initial value for t_edm optimization    
         //optimize t_edm to minimize the number of days
          TF1 optimizeddays_tEDM("optdays_tEDM",[mode, &result](double *x, double *p){
@@ -770,7 +791,6 @@ void analyzeSim(SimResult &result, std::string fileName, int mode, double cellCe
          optimizeddays_tEDM.Draw();
          u->Print((fileNameString + "_optimized_day_tEDM.eps").c_str());
          result.optimalTedm = optimizeddays_tEDM.GetMinimumX(20,500);
-         result.uOptimalTedm = (500. - 20.)/1000.;
          delete u;
       
          //optimize emptying time to minimize the number of days
@@ -906,7 +926,7 @@ double numError(int mode, SimResult tempResult)
     f.SetParameters(result.efficiency, result.fillTime, result.sourceStorageLifetime, result.survivalprob, result.emptyingTime, result.optimalTedm);
 
     for (int i = 0; i < n; ++i)
-    { 
+    {   
         f.SetParError(i, errorPar[i]);
         error = error + pow(errorPar[i]*f.GradientPar(i, &x), 2);
     }
@@ -983,7 +1003,7 @@ void DrawCellHistogram(SimResult &result, std::string fileName)
 
     TCanvas Can("Can","TopFill",3000,2000);
     ////////
-    scale = UCN_production*beamHeating * 0.5 * 200/result.totalSimulated; // ratio of production rates actual:simulated
+    scale = UCN_production*beamHeating * polarization * activeTime /result.totalSimulated; // ratio of production rates actual:simulated,  activeTime = simulation active time for source
     ////////
     result.topCellESpec->Scale(scale);
     result.topCellESpec->Draw("HIST");
