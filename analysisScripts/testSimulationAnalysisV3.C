@@ -20,6 +20,7 @@
 #include <fstream>
 #include "Rtypes.h"
 #include "TLegend.h"
+#include <chrono> 
 
     double beamHeating = 10; //W
     double UCN_production = 2.62E6; //UCN/W
@@ -112,7 +113,12 @@ void DrawCellHistogram(SimResult &result, std::string fileName);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void testSimulationAnalysisV3()
 {
-    
+
+    ///
+    //Set up timer
+    auto start = std::chrono::high_resolution_clock::now();
+
+
     gROOT->SetBatch(1);
     int mode = 1;   //Options are 0:batch, 1: steady beam, 2, steady state.
 
@@ -121,19 +127,20 @@ void testSimulationAnalysisV3()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //Create an instance of different studies, simulation files grouped together with varying parameters.
     //Tester study
-    Study test_study1 = {"Tester",{45},{"asymFunKinkHt45cm.root"},{},{0}};
+    Study test_study1 = {"Tester",{45},{"kinkAng2V45deg.root"},{},{0}};
 
     //Kink Angle
-     Study KinkAngle_study{"KinkAngle",{45,50,55,60,65,70,75,80,85,90},{"kinkAng45deg.root","kinkAng50deg.root","kinkAng55deg.root","kinkAng60deg.root","kinkAng65deg.root","kinkAng70deg.root","kinkAng75deg.root","kinkAng80deg.root","     kinkAng85deg.root","kinkAng90deg.root"},{},{0,0,0,0,0,0,0,0,0,0}};
+     Study KinkAngle_study{"KinkAngle",{45,50,55,60,65,70,75,80,85,90},{"kinkAng45deg.root","kinkAng50deg.root","kinkAng55deg.root","kinkAng60deg.root","kinkAng65deg.root","kinkAng70deg.root","kinkAng75deg.root","kinkAng80deg.root","kinkAng85deg.root","kinkAng90deg.root"},{},{0,0,0,0,0,0,0,0,0,0}};
 
+     Study KinkAngle2V_study{"KinkAngle2V",{45,50,55,60,65,70,75,80,85,90},{"kinkAng2V45deg.root","kinkAng2V50deg.root","kinkAng2V55deg.root","kinkAng2V60deg.root","kinkAng2V65deg.root","kinkAng2V70deg.root","kinkAng2V75deg.root","kinkAng2V80deg.root","kinkAng2V85deg.root","kinkAng2V90deg.root"},{},{0,0,0,0,0,0,0,0,0,0}};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////    
     
    //Tester function 
-   // std::vector<Study> allStudies = {test_study1};    
+    std::vector<Study> allStudies = {test_study1};    
 
    //Specific studies
-   std::vector<Study> allStudies = {KinkAngle_study};
+  // std::vector<Study> allStudies = {KinkAngle_study};
 
 
     //Run analysis functions on all simulations in each study and plot graphs
@@ -290,6 +297,12 @@ void testSimulationAnalysisV3()
         }
         resultsFile.close();      
     }
+
+    ///
+    //Stop timer
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration =std::chrono::duration_cast<std::chrono::seconds>(end-start);
+    std::cout<< "Time is " << duration.count() <<" s" << std::endl;
 }
 
 
@@ -472,7 +485,7 @@ void transport(std::string fileName, int modeParameter,SimResult &results, doubl
 	        
 	Double_t slope = g2.GetParameter(1);
 	Double_t slopeError = g2.GetParError(1);
-	sourceStorageLifetime = -1/slope;
+	sourceStorageLifetime = -1./slope;
 	sourceStorageLifetimeError = slopeError/(slope*slope);  //confirmed by SS and SM: 2019-02-28
 	       
 	lifetime->SetTitle("Storage lifetime of source");
@@ -498,16 +511,23 @@ void transport(std::string fileName, int modeParameter,SimResult &results, doubl
     // All the UCN that have the ability to make it to the cell in a mode are created in this start time.
     // e^2.4 = .9
 	double ninetyPer = valveOpenTime - 2.4*sourceStorageLifetime; // 100 - optimal irradiation time
+	double sourcePumpingTime, uSourcePumpingTime;
 	
 	//mode cuts for source production start time
 	if(mode == 0) {
 		 modeCuts = TCut(Form("tstart<%.0f && tstart > %f", valveOpenTime, ninetyPer)); //batchMode;
+		 sourcePumpingTime = valveOpenTime - ninetyPer;
+		 uSourcePumpingTime = 2.4*sourceStorageLifetimeError;
         }
         else if(mode == 1) {
             modeCuts = TCut(Form("tstart>%f && tstart < %f", ninetyPer, fillTime));
+            sourcePumpingTime = fillTime - ninetyPer;
+            uSourcePumpingTime = sqrt(pow(fillTimeError, 2) + pow(2.4*sourceStorageLifetimeError, 2));
         }
         else if(mode == 2) {
                 modeCuts = TCut(Form("tstart>%.0f", valveOpenTime)); //steadyStateMode;
+                sourcePumpingTime = valveOpenTime;
+                uSourcePumpingTime = 0.;
         }
 	
 
@@ -523,18 +543,24 @@ void transport(std::string fileName, int modeParameter,SimResult &results, doubl
 
 	//Step 5 - Total number of UCN//
 	//Total UCN created in the source that could make it in the same time
-	TCanvas *c2 = new TCanvas("c2", "c2", 800, 600);
+	//
+	//Changed the function to use simulatin production rate.  This now includes simulated UCN in the error analysis
+	int produced = neutronend->GetEntries(modeCuts);
+	double productionRate = produced/sourcePumpingTime;
+	totalUCN = productionRate*sourcePumpingTime;
+	uTotalUCN =sqrt(pow(productionRate*uSourcePumpingTime,2)+ pow(sqrt(produced),2));  //includes error in production rate
+/*	TCanvas *c2 = new TCanvas("c2", "c2", 800, 600);
 	neutronend->Draw("zend:yend:xend >> total", modeCuts);
 	TH1 *total = (TH1*) gDirectory->Get("total");
 	totalUCN = total->GetEntries();
 	uTotalUCN = sqrt(totalUCN);
-	delete c2;
+	delete c2;*/
 	
 	//if batch, take snapshot at tend == valveOpenTime, plot with modeCut and tend cut, getEntries, get transport efficiency (numInCell/getEntries)
 	
 	if(mode == 0 || mode == 1) {
 		TCanvas *c3 = new TCanvas("c3", "c3", 800, 600);
-		neutronsnapshot->Draw("zend:yend:xend>>transport", modeCuts && valveOpenTimeCut,"stopID != -2");
+		neutronsnapshot->Draw("zend:yend:xend>>transport", modeCuts && valveOpenTimeCut);
 	    TH1 *transport = (TH1*) gDirectory->Get("transport");
 		transport->SetTitle("UCNs transported");
 		double numTransported = transport->GetEntries();
@@ -598,17 +624,24 @@ void UCNremainingAfterCycle(SimResult &result)
     TH1F* topspectrum = result.topCellESpec;
     TH1F* bottomspectrum = result.bottomCellESpec;
 
-    TFile toptaufile("topCell_hist.root");
-    TFile bottomtaufile("bottomCell_hist.root");
-   // TFile toptaufile("kinkHtTopTau_hist.root");
-   // TFile bottomtaufile("kinkHtBottomTau_hist.root");
+    ///
+    //// topCell = old cell shape with dPS walls.  kinkHtTop (v1) is new cell shape with NiP cell walls.  kinkHtTop2V is new cell shape with dPS walls.
+
+  //  TFile toptaufile("topCell_hist.root");
+  //  TFile bottomtaufile("bottomCell_hist.root");
+ //   TFile toptaufile("kinkHtTopTau_hist.root");
+ //   TFile bottomtaufile("kinkHtBottomTau_hist.root");
+    TFile toptaufile("kinkHtTopTau2V_hist.root");
+    TFile bottomtaufile("kinkHtBottomTau2V_hist.root");
     TH1F *toptauhist = (TH1F*)toptaufile.Get("lifetime_1");
     TH1F *bottomtauhist = (TH1F*)bottomtaufile.Get("lifetime_1");
 
-    TFile topemptyingfile("topCell_emptying_DetEff.root");
-    TFile bottomemptyingfile("bottomCell_emptying_DetEff.root");
+//    TFile topemptyingfile("topCell_emptying_DetEff.root");
+//    TFile bottomemptyingfile("bottomCell_emptying_DetEff.root");
 //    TFile topemptyingfile("kinkHtTopEmptying_DetEff.root");
 //    TFile bottomemptyingfile("kinkHtBottomEmptying_DetEff.root");
+    TFile topemptyingfile("kinkHtTopEmptying2V_DetEff.root");
+    TFile bottomemptyingfile("kinkHtBottomEmptying2V_DetEff.root");
 //    TFile topemptyingfile(Form("asymFeedEmpt2VTop%icm_DetEff.root",(int)result.parameter));
 //    TFile bottomemptyingfile(Form("asymFeedEmpt2VBottom%icm_DetEff.root",(int)result.parameter));
    
@@ -621,7 +654,7 @@ void UCNremainingAfterCycle(SimResult &result)
 
 
     //Initial ucn in both cells  NOT USED.  INTEGRATE INSTEAD
-   // double n0Cell = result.topCellESpec->GetEntries() + result.bottomCellESpec->GetEntries();
+    double N0 = result.topCellESpec->GetEntries() + result.bottomCellESpec->GetEntries();
 
     double nFCellTop = 0.; // Top cell Ramsey survivors in simulation
     double nFCellBottom = 0.;
@@ -662,16 +695,30 @@ void UCNremainingAfterCycle(SimResult &result)
 
         //Most important
         //Total number of collected ucn from each energy bin in simulated number of ucn.
-        survivors += detEffTop * Nitop*exp(-result.optimalTedm/tauitop) + detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom);
-        if (dtauitop != 0)
-            dsurvivors += pow(uDetEffTop*Nitop*exp(-result.optimalTedm/tauitop), 2) + pow(dNitop*detEffTop*exp(-result.optimalTedm/tauitop), 2) + pow(Nitop*detEffTop*exp(-result.optimalTedm/tauitop)/tauitop/tauitop*dtauitop, 2) + pow(result.uOptimalTedm *detEffTop * Nitop*exp(-result.optimalTedm/tauitop),2);
+        survivors += detEffTop * Nitop*exp(-result.optimalTedm/tauitop) + detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom);   
+/*        if (dtauitop != 0)
+            dsurvivors += pow(uDetEffTop*Nitop*exp(-result.optimalTedm/tauitop), 2) + pow(Nitop*detEffTop*exp(-result.optimalTedm/tauitop)/tauitop/tauitop*dtauitop, 2) + pow(result.uOptimalTedm *detEffTop * Nitop*exp(-result.optimalTedm/tauitop) / tauitop,2);
         if (dtauibottom != 0)
-            dsurvivors += pow(uDetEffBottom* Nibottom *exp(-result.optimalTedm/tauibottom), 2) + pow(dNibottom *detEffBottom *exp(-result.optimalTedm/tauibottom), 2) + pow(Nibottom*detEffBottom*exp(-result.optimalTedm/tauibottom)/tauibottom/tauibottom*dtauibottom, 2) + pow(result.uOptimalTedm * detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom),2);   
-    }
+            dsurvivors += pow(uDetEffBottom* Nibottom *exp(-result.optimalTedm/tauibottom), 2) + pow(Nibottom*detEffBottom*exp(-result.optimalTedm/tauibottom)/tauibottom/tauibottom*dtauibottom, 2) + pow(result.uOptimalTedm * detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom) / tauibottom,2);   */
+        if (dtauitop != 0)
+            dsurvivors += pow(uDetEffTop*Nitop*exp(-result.optimalTedm/tauitop), 2) + pow(dNitop*detEffTop*exp(-result.optimalTedm/tauitop), 2) + pow(Nitop*detEffTop*exp(-result.optimalTedm/tauitop)/tauitop/tauitop*dtauitop, 2) + pow(result.uOptimalTedm *detEffTop * Nitop*exp(-result.optimalTedm/tauitop) / tauitop,2);
+        if (dtauibottom != 0)
+            dsurvivors += pow(uDetEffBottom* Nibottom *exp(-result.optimalTedm/tauibottom), 2) + pow(dNibottom *detEffBottom *exp(-result.optimalTedm/tauibottom), 2) + pow(Nibottom*detEffBottom*exp(-result.optimalTedm/tauibottom)/tauibottom/tauibottom*dtauibottom, 2) + pow(result.uOptimalTedm * detEffBottom * Nibottom*exp(-result.optimalTedm/tauibottom) / tauibottom,2);   
+    } 
+    //end for loop looping over each bin.
    
+    //taking the square root of all of the uncertainties
+    dsurvivors = sqrt(dsurvivors);
+
     //Used to calculed weight def eff
     double NF = nFCellTop + nFCellBottom;	// Number that finish the Ramsey cycle
-    double N0 = topspectrum->Integral() + bottomspectrum->Integral();
+    
+   // double uTopN0;
+   // double uBottomN0;
+   // double N0 = topspectrum->IntegralAndError(0,50,uTopN0) + bottomspectrum->IntegralAndError(0,50,uBottomN0); //Initial UCN in filling histogram (from transport() + plus errors in integration)
+   // double uN0 = uTopN0 + uBottomN0; //Error in UCN filling
+    
+   // std::cout<< "Top cell simulation filling: "<< topspectrum->IntegralAndError(0,50,uTopN0) << " +/- " << uTopN0 << std::endl;
     double avgTauCell = result.optimalTedm / log(N0/NF);
     double uavgTauCell = result.optimalTedm * (sqrt(1./N0 + 1./NF) * NF/N0) ; 
     
@@ -696,7 +743,10 @@ void UCNremainingAfterCycle(SimResult &result)
     bottomemptyingfile.Close();
 
     result.survivalprob  = survivors/N0;  // survival probability
-    result.dSurvivalprob = sqrt(dsurvivors)/N0;
+//    std::cout<< "surviors: " << survivors << " N0: " << N0 << std::endl;
+    result.dSurvivalprob = dsurvivors/N0;
+   // result.dSurvivalprob = sqrt(pow(dsurvivors/N0,2) + pow(survivors* uN0 /(N0 * N0),2));
+//    std::cout<< "Survival probability: " << result.survivalprob << " +/- " << result.dSurvivalprob << std::endl;
     result.avgTauCells = avgTauCell;
     result.uavgTauCells = uavgTauCell;
     result.WDetEff = wMeanDetEff;
@@ -727,7 +777,7 @@ double days(int mode, SimResult &result)
     double sensitivityPerFill;
    
 
-    //cyclesPerDay
+    //cyclesPerDay  (unit of time is in minutes)
     if (mode ==1)
         cyclesPerDay = (stableField * 60)/((fillsPerCycle * (result.emptyingTime + result.optimalTedm +sourcePumpingTime) + 2*polarityTime + degaussingTime/10)/60);
         
@@ -754,9 +804,7 @@ double days(int mode, SimResult &result)
     sensitivityPerFill = hbar / (2 * (result.optimalTedm - t_wait - 2*t_pulse) * EField * sqrt(N_det) * alpha_after);
 
     cyclesToReach = pow(sensitivityPerFill/sqrt(fillsPerCycle)/(1E-27),2);
-   // cyclesToReach = 100 * (sensitivityPerFill/sqrt(fillsPerCycle)/(1E-26)) * (sensitivityPerFill/sqrt(fillsPerCycle)/(1E-26));
 
-//    std::cout<< "cycles per day "<< cyclesPerDay << std::endl;
     daysToReach =  cyclesToReach / cyclesPerDay;
     
     return daysToReach;
@@ -821,7 +869,7 @@ void analyzeSim(SimResult &result, std::string fileName, int mode, double cellCe
          double errDaysToReach = numError(mode, result);
          result.errDaysToReach = errDaysToReach;
 
-         std::cout << "Days to reach: " <<  result.daysToReach << " +/- "<< result.errDaysToReach <<"s\n\n";
+         std::cout << "Days to reach: " <<  result.daysToReach << " +/- "<< result.errDaysToReach <<"\n\n";
  
          //Estimating real UCN in actual source   
          cellNumber = cellTotal(mode, result);
@@ -926,9 +974,10 @@ double numError(int mode, SimResult tempResult)
     f.SetParameters(result.efficiency, result.fillTime, result.sourceStorageLifetime, result.survivalprob, result.emptyingTime, result.optimalTedm);
 
     for (int i = 0; i < n; ++i)
-    {   
+    {  
         f.SetParError(i, errorPar[i]);
         error = error + pow(errorPar[i]*f.GradientPar(i, &x), 2);
+        std::cout << "Error is: " << errorPar[i] << " times gradient " << f.GradientPar(i, &x) << " = "<< sqrt(error) <<std::endl;
     }
     return error = sqrt(error);
 }
@@ -981,18 +1030,24 @@ void DrawCellHistogram(SimResult &result, std::string fileName)
 {
 
     double scale;
-    TFile toptaufile("topCell_hist.root");
-    TFile bottomtaufile("bottomCell_hist.root");
-   // TFile toptaufile("kinkHtTopTau_hist.root");
-   // TFile bottomtaufile("kinkHtBottomTau_hist.root");
+//    TFile toptaufile("topCell_hist.root");
+//    TFile bottomtaufile("bottomCell_hist.root");
+//    TFile toptaufile("kinkHtTopTau_hist.root");
+//    TFile bottomtaufile("kinkHtBottomTau_hist.root");
+    TFile toptaufile("kinkHtTopTau2V_hist.root");
+    TFile bottomtaufile("kinkHtBottomTau2V_hist.root");
     TH1F *toptauhist = (TH1F*)toptaufile.Get("lifetime_1");
     TH1F *bottomtauhist = (TH1F*)bottomtaufile.Get("lifetime_1");
 
-    TFile topemptyingfile("topCell_emptying_DetEff.root");
-    TFile bottomemptyingfile("bottomCell_emptying_DetEff.root");
+//    TFile topemptyingfile("topCell_emptying_DetEff.root");
+//    TFile bottomemptyingfile("bottomCell_emptying_DetEff.root");
 //    TFile topemptyingfile("kinkHtTopEmptying_DetEff.root");
 //    TFile bottomemptyingfile("kinkHtBottomEmptying_DetEff.root");
-//    TFile topemptyingfile(Form("asymFeedEmpt2VTop%icm_DetEff.root",(int)result.parameter));
+    TFile topemptyingfile("kinkHtTopEmptying2V_DetEff.root");
+    TFile bottomemptyingfile("kinkHtBottomEmptying2V_DetEff.root");
+
+   //// used for emptying files when a study has multiple emptying geometries
+//    TFile topemptyingfile(Form("asymFeedEmpt2VTop%icm_DetEff.root",(int)result.parameter));      
 //    TFile bottomemptyingfile(Form("asymFeedEmpt2VBottom%icm_DetEff.root",(int)result.parameter));
     TH2 *topemptyinghist = (TH2*)topemptyingfile.Get("emptyEff");
     TH2 *bottomemptyinghist = (TH2*)bottomemptyingfile.Get("emptyEff");
