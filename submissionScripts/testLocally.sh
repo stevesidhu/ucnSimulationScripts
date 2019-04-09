@@ -6,13 +6,13 @@ read -p $'\n\nWhat have you re-named the study? ' parameter
 
 ## Counts the number of different values of the parameter being simulated
 
-read -p $'\n\nIs this an emptying simulation? Type "y" (no quotes) if so. ' emptying
+read -p $'\n\nIs this an emptying or storage simulation? Type "y" (no quotes) if so. ' emptying
 
 if [ $emptying = 'y' ]
 then
-	numValues=$(ls -d -1q ${parameter}Toprun* | wc -l)
+	numValues=$(ls -d -1q ${parameter}TopRun* | wc -l)
 else
-	numValues=$(ls -d -1q ${parameter}run* | wc -l)
+	numValues=$(ls -d -1q ${parameter}Run* | wc -l)
 fi
 
 for i in $(seq 1 $numValues);
@@ -20,15 +20,15 @@ do
 	if [ $emptying = "y" ]
 	then
 		echo "Checking Run$i Top!"
-		until ./PENTrack/PENTrack 99 ${parameter}Toprun$i . | grep -m 1 "Particle no.: 1"; do : ; done
+		until ./PENTrack/PENTrack 99 ${parameter}TopRun$i . | grep -m 1 "Particle no.: 1"; do : ; done
 		echo "Run $i Top is good to go!"
 		
 		echo "Checking Run$i Bottom!"
-		until ./PENTrack/PENTrack 99 ${parameter}Bottomrun$i . | grep -m 1 "Particle no.: 1"; do : ; done
+		until ./PENTrack/PENTrack 99 ${parameter}BottomRun$i . | grep -m 1 "Particle no.: 1"; do : ; done
 		echo "Run $i Bottom is good to go!"
 	else
 		echo "Checking Run$i!"
-		until ./PENTrack/PENTrack 99 ${parameter}run$i . | grep -m 1 "Particle no.: 1"; do : ; done
+		until ./PENTrack/PENTrack 99 ${parameter}Run$i . | grep -m 1 "Particle no.: 1"; do : ; done
 		echo "Run $i is good to go!"
 	fi
 done

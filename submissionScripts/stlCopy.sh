@@ -8,7 +8,7 @@ read -p $'\n\nWhat is the name of the study? ' studyName
 
 read -p $'\n\nWhat would you like to rename the study? ' parameter
 
-read -p $'\n\nIs this an emptying study? If so, type "y" (no quotes). ' emptying
+read -p $'\n\nIs this an emptying or storage study? If so, type "y" (no quotes). ' emptying
 
 if [ $emptying = "y" ]
 then
@@ -40,17 +40,17 @@ for j in $(ls -d -v *);
 do
 	if [ $emptying != 'y' ]
 	then
-		rm -rf ../${parameter}run$i/STL;
-		mkdir -p ../${parameter}run$i/STL;
+		rm -rf ../${parameter}Run$i/STL;
+		mkdir -p ../${parameter}Run$i/STL;
 		echo "Currently copying $j"
-		cp -r $j/* ../${parameter}run$i/STL;
+		cp -r $j/* ../${parameter}Run$i/STL;
 	else
-		rm -rf ../${parameter}*run$i/STL;
-		mkdir -p ../${parameter}Toprun$i/STL;
-		mkdir -p ../${parameter}Bottomrun$i/STL;
+		rm -rf ../${parameter}*Run$i/STL;
+		mkdir -p ../${parameter}TopRun$i/STL;
+		mkdir -p ../${parameter}BottomRun$i/STL;
 		echo "Currently copying $j"
-		cp -r $j/* ../${parameter}Toprun$i/STL;
-		cp -r $j/* ../${parameter}Bottomrun$i/STL;
+		cp -r $j/* ../${parameter}TopRun$i/STL;
+		cp -r $j/* ../${parameter}BottomRun$i/STL;
 	fi
 	i=$((i+1));
 done

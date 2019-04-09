@@ -12,6 +12,14 @@ All here need SimResult.h
 testSimulationAnalysisV3.C
     Fixed many bugs, fixed plotting.  Updated error in days to reach.  Added more comments throught.  Still need to add more comments for Days function
 
+Needs SimResult1.h
+testSimulationAnalysisV4.C
+    Elinimated error analysis for days to reach since it was wrong.  Added simulated annealing minimization instead.  Added 3D histograms so how sourcePumpingTime goes with time as well
+
+daystoreach.py
+    New python script to replace C scripts.
+
+
 
 
 
