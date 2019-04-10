@@ -5,48 +5,69 @@
 #!/bin/sh
 
 
-
-## Makes sure the user doesn't have anything in the toMerge folder they don't want to overwrite
-
-printf "\n\nWARNING: This will overwrite existing Run folders in the toMerge folder! Type 'y' (no quotes)
-to proceed, or type anything if you don't want this to happen and the script will exit! "
-
-read goAhead
-
-if [ $goAhead != "y" ]
-then
-	exit
-fi
-
 ## Firstly, the user is asked for the Runs they want to process
 
 ## Asks the user the name of the study
 
 read -p $'\n\nEnter the name of the study: ' parameter
 
-read -p $'\n\nWhat is the first Run you want to process? ' firstRun
-read -p $'\n\nWhat is the last Run you want to process? ' lastRun
+read -p $'\n\nYou must move the files to the toMerge folder to proceed. If you have not done that yet, would you like to now?
+WARNING: This will overwrite ALL existing .out files of the same study name in the toMerge folder!! (y/n) ' moveToMerge
+
+read -p $'\n\nIs this an emptying/storage simulation? (y/n) ' emptying
+
+if [ $emptying = 'y' ]
+then
+		pathTop=${parameter}TopRun
+		pathBot=${parameter}BottomRun
+		
+		if [ $moveToMerge = 'y' ]
+		then
+	        	numValues=$(ls -d -1q $pathTop* | wc -l)
+		else
+			numValues=$(ls -d -1q toMerge/$pathTop* | wc -l)
+		fi
+	else
+		path=${parameter}Run
+
+		if [ $moveToMerge = 'y'  ]
+		then
+	        	numValues=$(ls -d -1q $path* | wc -l)
+		else
+			numValues=$(ls -d -1q toMerge/$path* | wc -l)
+		fi
+fi
 
 ## This moves the Run files to a separate sub-folder which handles the merging processing of 
 ## completed simulations, enabling a separate simulation to be ran concurrently with merging
 
 ## First asks the user if the files have already been copied:
 
-read -p $'\n\nHave the files already been moved to the toMerge folder? If not, type "n" (no quotes).
-Otherwise, type anything if they are already located there. ' alreadyDone
-
-if [ $alreadyDone = 'n' ]
+if [ $moveToMerge = 'y' ]
 then
 	printf "\n\nMoving files to the toMerge folder!\n\n"
 
-	for i in $(seq $firstRun $lastRun)
+	if [ $emptying = 'y' ]
+	then
+		for i in $(seq 1 $numValues)
 		do
-			rm -rf toMerge/${parameter}Run$i;
-			mkdir -p toMerge/${parameter}Run$i;
-			mv ${parameter}Run$i toMerge;
+			rm -rf toMerge/$pathTop$i;
+			rm -rf toMerge/$pathBot$i;
+			mkdir -p toMerge/$pathTop$i;
+			mkdir -p toMerge/$pathBot$i;
+			mv $pathTop$i toMerge;
+			mv $pathBot$i toMerge;
 		done
-fi
+	else
+		for i in $(seq 1 $numValues)
+		do
+			rm -rf toMerge/$path$i;
+			mkdir -p toMerge/$path$i;
+			mv $path$i toMerge;
+		done
 
+	fi
+fi
 
 ## Firstly, this loops through all specified Runs in order to combine the .out files into a .root file
 
@@ -55,34 +76,109 @@ fi
 
 ## Confirm that user does in fact want to merge files
 
-read -p $'\n\nDo you want to merge .out files to a .root file? If so, type "y" (no quotes). 
-If they are already merged, and you want to overwrite them all at once, type "w" (no quotes). 
-If they are already merged, and you don\'t want to overwrite them - or overwrite them separately, type anything: ' answer
+read -p $'\n\nDo you wish to merge .out files to a .root file? (y/n) ' answer
 
-if [ $answer = "y" ] || [ $answer = "w" ]
+overwritePrompt=
+
+if [ $answer = "y" ]
 then
-	for i in $(seq $fistRun $lastRun);
+
+	## If there are already root files in the run folders, asks if user wants to overwrite them all
+
+	if [ $emptying = "y" ]
+	then
+		for i in $(seq 1 $numValues)
 		do
-			cd toMerge/${parameter}Run$i
-	
-			if [ -e out.root ] && [ $answer != "w" ]
+			cd toMerge/$pathTop$i
+
+			if [ -e out.root ]
 			then
-				read -p "There is already an out.root file for Run $i. Type 'w' (no quotes) to overwrite, or type anything to leave current out.root file: " overwrite
-				if [ $overwrite = 'w' ]
+				read -p $'\n\nSome runs already have out.root files. Would you like to overwrite all existing out.root files? (y/n) ' overwrite
+				break
+			fi
+
+			cd ../..
+
+			cd toMerge/$pathBot$i
+
+			if [ -e out.root ]
+			then
+				read -p $'\n\nSome runs already have out.root files. Would you like to overwrite all existing out.root files? (y/n) ' overwrite
+				break
+			fi
+
+			cd ../..
+
+		done
+	else
+		for i in $(seq 1 $numValues)
+		do
+			cd toMerge/$path$i
+
+			if [ -e out.root ]
+			then
+				read -p $'\n\nSome runs already have out.root files. Would you like to overwrite all existing out.root files? (y/n) ' overwrite
+				break
+			fi
+
+			cd ../..
+
+		done
+
+	fi
+
+	## Now do the merging, removing existing out.root files as necessary
+
+	if [ $emptying = "y" ]
+	then
+		for i in $(seq 1 $numValues)
+		do
+			cd toMerge/$pathTop$i
+
+			if [ -e out.root ] && [ $overwrite = "y" ]
+			then
+				rm out.root
+			fi
+
+			root -q -l ../../cScripts/merge_all.c
+
+			printf "\n\n\nCompleted merging Top Run $i!\n\n\n"
+			
+			cd ../..
+			
+			cd toMerge/$pathBot$i
+
+			if [ -e out.root ] && [ $overwrite = "y" ]
+			then
+				rm out.root
+			fi
+
+			root -q -l ../../cScripts/merge_all.c
+
+			printf "\n\n\nCompleted merging Bottom Run $i!\n\n\n"
+			
+			cd ../..
+		done
+
+	else
+		for i in $(seq 1 $numValues)
+		do
+			cd toMerge/$path$i
+	
+			if [ -e out.root ] && [ $overwrite = "y" ]
 				then
 					rm out.root
 				else
 					continue
-				fi
 			fi
-			
+				
 			root -q -l ../../cScripts/merge_all.c
-
-			printf "\n\n\nCompleted merging $(basename $i)!\n\n\n"
-			cd ../..;
+	
+			printf "\n\n\nCompleted merging Run $i!\n\n\n"
+			cd ../..
 		done
+	fi
 fi
-
 
 ## This part automates the renaming of the root files
 
@@ -92,69 +188,39 @@ fi
 
 ## Loops through each Run, asking the user the value of the parameter in that Run
 
-for i in $(seq $firstRun $lastRun);	
-do
-		read -p "Enter the value of the parameter in Run $i: " val;
-		mv toMerge/${parameter}Run$i/out.root ${parameter}${val}.root;
-done
+read -p $'\n\nWould you like to rename the root files now? (y/n) ' rename
 
-
-
-## This part deletes the .out files as they are unnecessary after they are merged into a .root file
-
-
-## Asks the user prior to looping through and deletes all the Run folders in the toMerge
-
-read -p $'\n\nNow that you have the root files, are you ready to delete the Run folders with the .out files? Type "y" (no quotes) if so. ' proceed
-
-if [ $proceed = 'y' ]
+if [ $rename = "y" ]
 then
-	for i in $(seq $firstRun $lastRun)
-	do
-		rm -r toMerge/${parameter}Run$i;
-	done
+	if [ $emptying = "y" ]
+	then
+		for i in $(seq 1 $numValues);	
+		do
+				read -p "Enter the value of the parameter in Run $i: " val
+				mv toMerge/$pathTop$i/out.root ${parameter}Top${val}.root
+				mv toMerge/$pathBot$i/out.root ${parameter}Bottom${val}.root
+		done
+	else
+		for i in $(seq 1 $numValues);	
+		do
+				read -p "Enter the value of the parameter in Run $i: " val
+				mv toMerge/$path$i/out.root ${parameter}${val}.root
+		done
+	fi
 fi
-
 
 ## This part quickly copies all root files to Angerona, and then moves the root files to a backup folder to reduce clutter
 
 ## Asks the user if they want to copy to Angerona right now
 
-read -p $'\n\nIf you want to copy over to UCN cluster now, type "y" (no quotes). If not, type anything. ' proceed
+read -p $'\n\nWould you like to copy over to UCN cluster now? (y/n) ' proceed
 
 if [ $proceed = 'y' ]
 then
-	scp *.root smorawetz@angerona.triumf.ca:/ucn/orithyia_data/ssidhu2/cryoSimulations
+	scp ${parameter}*.root smorawetz@angerona.triumf.ca:/ucn/orithyia_data/ssidhu2/cryoSimulations
 	
-	mv *.root rootFileBackups
+	mv ${parameter}*.root rootFileBackups
 
-fi
-
-## This part deletes the .out files as they are unnecessary after they are merged into a .root file
-
-
-## Asks the user prior to looping through and deletes all the Run folders in the toMerge
-
-read -p $'\n\nNow that you have the root files, are you ready to delete the Run folders with the .out files? Type "y" (no quotes) if so. ' proceed
-
-if [ $proceed = 'y' ]
-then
-	for i in $(seq $firstRun $lastRun)
-fi
-
-
-## Finally, this deletes the Run folders containing STL files on the home drive, and the batch files
-
-read -p $'\n\nNow that the .root files are on the UCN cluster and have been verified, are you ready to delete the STL,
-output and batch files? Type "y" (no quotes) if so. ' proceed
-
-if [ $proceed = 'y' ]
-then
-	cd ..
-
-	rm -r ${parameter}Run*
-
-	rm ${parameter}batch*.sh
 fi
 
 ## This part speeds up the sanity check of verifying the plots are reasonable
@@ -163,30 +229,4 @@ fi
 ## The function then loops through all Runs specified by the user, checking the
 ## number of entries, in addition to drawing the plot for verification
 
-exit
-
-ssh -Y smorawetz@angerona.triumf.ca
-
-cd ../../ucn/orithyia_data/ssidhu2/cryoSimulations
-
-for i in $(ls ${parameter}*.root); 
-do
-	echo "Currently checking Run $i"	
-	root -q -l "cScripts/outputCheck.C(\"$i\")"
-	root -l "cScripts/plotCheck.C(\"$i\")" <<-EOF
-	std::cout << "\n\nClose the plot to proceed\n\n" << endl;
-	gPad->WaitPrimitive();
-	.q
-	EOF
-done
-
-## ## The following is no longer necessary as verifying the plots is the last step
-## 
-## read -p '\n\n\nIMPORTANT: To proceed, type "y" (no quotes). Otherwise, if any Runs are
-## suspicious, type anything and this program will exit - you can repeat this process again
-## after the problems are fixed! ' goForward
-## 
-## if [ $goForward != "y" ]
-## then
-## 	exit
-## fi
+ssh -Y smorawetz@angerona.triumf.ca 'bash -s' < checkPlots.sh

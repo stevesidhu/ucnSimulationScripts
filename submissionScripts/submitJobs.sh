@@ -7,13 +7,17 @@
 
 read -p $'\n\nWhat have you re-named the study? ' parameter
 
-read -p $'\n\nIs this an emptying or storage simulation? Answer "y" (no quotes) if so, or anything if not. ' emptying
+path=${parameter}Run
+pathTop=${parameter}TopRun
+pathBot=${parameter}BottomRun
+
+read -p $'\n\nIs this an emptying/storage simulation? (y/n) ' emptying
 
 if [ $emptying = 'y' ]
 then
-	numGeometries=$(ls -d -1q ${parameter}TopRun* | wc -l)
+	numGeometries=$(ls -d -1q $pathTop* | wc -l)
 else
-	numGeometries=$(ls -d -1q ${parameter}Run* | wc -l)
+	numGeometries=$(ls -d -1q $path* | wc -l)
 fi
 
 ## This loops through and creates a new batch file for each separameter variation of the parameter in the study
@@ -32,19 +36,19 @@ then
 		#SBATCH --time=200
 		#SBATCH --mem=4G
 		#SBATCH --array=1-50
-		#SBATCH --output=/home/stewmo/slurmOutput/Array_test.%A_%a.out
-		#SBATCH --error=/home/stewmo/slurmErrors/Array_test.%A_%a.out
+		#SBATCH --output=/home/stewmo/slurmOutput/$pathTop$i.%A_%a.out
+		#SBATCH --error=/home/stewmo/slurmErrors/$pathTop$i.%A_%a.out
 		#PBS -l walltime=12:00:00
 		
 		ID=\$SLURM_ARRAY_TASK_ID
 		JOB=\$SLURM_ARRAY_JOB_ID
 		
-		/home/stewmo/PENTrack/PENTrack \$JOB\$ID /home/stewmo/${parameter}TopRun$i/config.in /home/stewmo/scratch/${parameter}TopRun$i
+		/home/stewmo/PENTrack/PENTrack \$JOB\$ID /home/stewmo/$pathTop$i/config.in /home/stewmo/scratch/$pathTop$i
 		EOF
 
 		## Prior to submitting them, new folders in the scratch drive need to be created to accomodate the output files
 	
-		mkdir -p scratch/${parameter}TopRun$i
+		mkdir -p scratch/$pathTop$i
 
 
 		## Repeat the same process, but for the bottom cell emptying
@@ -55,19 +59,19 @@ then
 		#SBATCH --time=200
 		#SBATCH --mem=4G
 		#SBATCH --array=1-50
-		#SBATCH --output=/home/stewmo/slurmOutput/Array_test.%A_%a.out
-		#SBATCH --error=/home/stewmo/slurmErrors/Array_test.%A_%a.out
+		#SBATCH --output=/home/stewmo/slurmOutput/$pathBot$i.%A_%a.out
+		#SBATCH --error=/home/stewmo/slurmErrors/$pathBot$i.%A_%a.out
 		#PBS -l walltime=12:00:00
 		
 		ID=\$SLURM_ARRAY_TASK_ID
 		JOB=\$SLURM_ARRAY_JOB_ID
 		
-		/home/stewmo/PENTrack/PENTrack \$JOB\$ID /home/stewmo/${parameter}BottomRun$i/config.in /home/stewmo/scratch/${parameter}BottomRun$i
+		/home/stewmo/PENTrack/PENTrack \$JOB\$ID /home/stewmo/$pathBot$i/config.in /home/stewmo/scratch/$pathBot$i
 		EOF
 
 		## Prior to submitting them, new folders in the scratch drive need to be created to accomodate the output files
 	
-		mkdir -p scratch/${parameter}BottomRun$i
+		mkdir -p scratch/$pathBot$i
 	
 	done
 else
@@ -80,19 +84,19 @@ else
 		#SBATCH --time=200
 		#SBATCH --mem=4G
 		#SBATCH --array=1-50
-		#SBATCH --output=/home/stewmo/slurmOutput/Array_test.%A_%a.out
-		#SBATCH --error=/home/stewmo/slurmErrors/Array_test.%A_%a.out
+		#SBATCH --output=/home/stewmo/slurmOutput/$path$i.%A_%a.out
+		#SBATCH --error=/home/stewmo/slurmErrors/$path$i.%A_%a.out
 		#PBS -l walltime=12:00:00
 	
 		ID=\$SLURM_ARRAY_TASK_ID
 		JOB=\$SLURM_ARRAY_JOB_ID
 	
-		/home/stewmo/PENTrack/PENTrack \$JOB\$ID /home/stewmo/${parameter}Run$i/config.in /home/stewmo/scratch/${parameter}Run$i
+		/home/stewmo/PENTrack/PENTrack \$JOB\$ID /home/stewmo/$path$i/config.in /home/stewmo/scratch/$path$i
 		EOF
 
 		## Prior to submitting them, new folders in the scratch drive need to be created to accomodate the output files
 
-		mkdir -p scratch/${parameter}Run$i
+		mkdir -p scratch/$path$i
 
 	done
 

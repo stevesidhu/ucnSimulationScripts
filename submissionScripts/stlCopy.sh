@@ -8,7 +8,7 @@ read -p $'\n\nWhat is the name of the study? ' studyName
 
 read -p $'\n\nWhat would you like to rename the study? ' parameter
 
-read -p $'\n\nIs this an emptying or storage study? If so, type "y" (no quotes). ' emptying
+read -p $'\n\nIs this an emptying/storage study? (y/n) ' emptying
 
 if [ $emptying = "y" ]
 then

@@ -7,31 +7,49 @@
 
 read -p $'\n\nEnter the name of the study: ' parameter
 
-read -p $'\n\nWhat is the first Run you want to delete? ' firstRun
-read -p $'\n\nWhat is the last Run you want to delete? ' lastRun
-
-
+read -p $'\n\nIs this an emptying/storage study? (y/n) ' emptying
 
 ## Finally, this deletes the Run folders containing STL files on the home drive, and the batch and .out files
 
 read -p $'\n\nThis will delete the .out files, the batch files used to submit jobs to cedar, and the text files which record job IDs.
-Are you sure you are ready to delete all this? Type "y" (no quotes) to delete it all. ' proceed
+Are you sure you are ready to delete all this? (y/n) ' proceed
+
+path=${parameter}Run
+pathTop=${parameter}TopRun
+pathBot=${parameter}BottomRun
+
+
+if [ $emptying = 'y' ]
+then
+	numValues=$(ls -d -1q toMerge/$pathTop* | wc -l)
+else
+	numValues=$(ls -d -1q toMerge/$path* | wc -l)
+fi
 
 if [ $proceed = 'y' ]
 then
-	for i in $(seq $firstRun $lastRun)
+	for i in $(seq 1 $numValues)
 	do
-		rm -r toMerge/${parameter}Run$i;
+		rm -rf toMerge/$path$i
+		rm -rf $path$i
+		rm -rf toMerge/$pathTop$i
+		rm -rf $pathTop$i
+		rm -rf toMerge/$pathBot$i
+		rm -rf $pathBot$i
 	done
 	
 	mv $parameter*.root rootFileBackups
 
 	cd ..
 	
-	for i in $(seq $firstRun $lastRun)
+	for i in $(seq 1 $numValues)
 	do
-		rm -r ${parameter}Run$i;
-		rm ${parameter}Batch$i.sh;
+		rm -rf $path$i
+		rm -rf $pathTop$i
+		rm -rf $pathBot$i
+		rm -rf ${parameter}Batch$i.sh
+		rm -rf ${parameter}TopBatch$i.sh
+		rm -rf ${parameter}BottomBatch$i.sh
 	done
 	
 	rm ${parameter}.txt
