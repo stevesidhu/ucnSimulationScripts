@@ -56,8 +56,15 @@ do
 			
 			if [ $emptying != 'y' ]
 			then
-				mkdir -p $path$i
-				cp $fileToCopy $path$i
+
+				if [ "${fileToCopy:0:6}" = "config" ]
+				then
+					mkdir -p $path$i
+					cp $fileToCopy $path$i/config.in
+				else
+					mkdir -p $path$i
+					cp $fileToCopy $path$i
+				fi
 			else
 			
 				## Copies the earlier specified config files into the Run folders in the case of an emptying simulation
@@ -65,16 +72,10 @@ do
 				if [ $emptConfig = "y" ]
 				then
 					mkdir -p $pathTop$i
-					cp $topEmpt $pathTop$i/$topEmpt
-					cd $pathTop$i
-					mv $topEmpt config.in
-					cd ..
+					cp $topEmpt $pathTop$i/config.in
 
 					mkdir -p $pathBot$i
-					cp $botEmpt $pathBot$i/$botEmpt
-					cd $pathBot$i
-					mv $botEmpt config.in
-					cd ..
+					cp $botEmpt $pathBot$i/config.in
 				fi
 
 				## As there are two separate Run folders created for emptying simulations - Top and Bottom - must copy to each

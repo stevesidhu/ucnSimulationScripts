@@ -1,6 +1,6 @@
 # ucnSimulationScripts
 
-There are six scrips within this folder, and they are used to considerably speed up the process of submitting simulation jobs to Cedar, the cluster at Compute Canada which we use to run simulations.
+There are six scrips within the submissionScripts folder, and they are used to considerably speed up the process of submitting simulation jobs to Cedar, the cluster at Compute Canada which we use to run simulations.
 
 **IMPORTANT NOTE 1**: All of these scripts will need to be changed so that they point to the correct paths. Currently they will all point to my home directory on Cedar and Angerona (stewmo, smorawetz), and must be changed to yours if they are to work correctly.
 
@@ -25,7 +25,7 @@ This script automates the process of repeatedly moving several files to all the 
 
 Run folder (kinkHtrun1) -> STL ->  STL files
 
-This script must be located in the same folder as stlCopy.sh. The script will ask for two specific inputs, and then which files you would like to copy. It firsts asks the name of the study - this is the name you have chosen, NOT the original name (e.g. kinkHt, not KinkHeight). Secondly, it will ask if this is an emptying or storage simulation. If so, it will ask explicity what are the config files for the top and bottom cells. If it is not an emptying or storage simulation, or you when those two files have been specified (with extensions!), you are asked which files you want to copy (specify file extensions!). A copy of these will be placed in each of the Run folders. Type 'done' (no quotes) when finished.
+This script must be located in the same folder as stlCopy.sh. The script will ask for two specific inputs, and then which files you would like to copy. It firsts asks the name of the study - this is the name you have chosen, NOT the original name (e.g. kinkHt, not KinkHeight). Secondly, it will ask if this is an emptying or storage simulation. If so, it will ask explicity what are the config files for the top and bottom cells. If it is not an emptying or storage simulation, or you when those two files have been specified (with extensions!), you are asked which files you want to copy (specify file extensions!). Additionally, when copying any file which begins with "config", it will automatically be renamed to config.in when it is copied to the run folders. THis enables you to keep multiple config files for different geometries, without needing to manually rename them each time. A copy of these will be placed in each of the Run folders. Type 'done' (no quotes) when finished. 
 
 
 ### testLocally.sh
