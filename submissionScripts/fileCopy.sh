@@ -61,6 +61,9 @@ do
 				then
 					mkdir -p $path$i
 					cp $fileToCopy $path$i/config.in
+				elif [ "${fileToCopy:0:8}" = "materials" ]
+					mkdir -p $path$i
+					cp $fileToCopy $path$i/materials.in
 				else
 					mkdir -p $path$i
 					cp $fileToCopy $path$i
